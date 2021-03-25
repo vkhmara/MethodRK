@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
+#include <iomanip>
 using namespace std;
 
 const string AFile = "A.txt";
@@ -8,32 +10,27 @@ const string b1File = "b1.txt"; // more accurate
 const string b2File = "b2.txt";
 const string cFile = "c.txt";
 const string dimenFile = "Dimen.txt";
+const string whereOutput = "D:/”чЄба/ урсач/6 сем/Graphics/";
 const double E = 2.718281828459045;
 const double PI = 3.14159265358979;
-class myEx : exception{
-public:
-	myEx() {}
-};
+const double deltaMax = 0.95;
 
 const double X0 = 0.0;
-const double Y0 = 0.0;
-const double X1 = PI / 4;
-const double expected = 1;//pow(E, 0.5);//2;
-const double EPS = 1e-10;
+const double Y0 = 3.0;
+const double X1 = 4;
+//const double expected = pow(E, 3.0) / 2 - 3.0;
+const double EPS = 1e-5;
 const int degree = 4;
-
-double hMin = 1e-3;
 
 double** A;
 double* b1;
 double* b2;
 double* c;
-double* kk;
 
 int s;
 
 double f(double x, double y) {
-	return y * y + 1;
+	return -y + x * x;
 //	return y;
 }
 
@@ -80,7 +77,6 @@ void initAll() {
 	b1 = new double[s];
 	b2 = new double[s];
 	c = new double[s];
-	kk = new double[s];
 }
 
 void downloadAll() {
@@ -150,7 +146,6 @@ void clearAll() {
 	delete[]b1;
 	delete[]b2;
 	delete[]c;
-	delete[]kk;
 }
 
 void kFromStep(double xValue, double yValue, double step, double* k) {
@@ -175,25 +170,33 @@ double nextValue(double xValue, double yValue, double step, double* b, double* k
 	return yValue + step * sum;
 }
 
-void solution(double& solut, double& accurSolut) {
+void adaptiveRK(vector<double>& nodes, vector<double>& values) {
+	double* k = new double[s];
+	nodes = vector<double>();
+	values = vector<double>();
+
+	nodes.push_back(X0);
 	double xCurr = X0;
-	solut = Y0;
-	const double deltaMax = 0.9;
+	values.push_back(Y0);
+	double solut = Y0;
 	double totalTol = EPS / abs(X1 - X0);
 	double step = (X1- X0) / 2;
 	double localError = 0;
 	while (abs(xCurr - X1) > DBL_EPSILON) {
-		kFromStep(xCurr, solut, step, kk);
+		kFromStep(xCurr, solut, step, k);
 		localError = 0;
 		for (int i = 0; i < s; i++) {
-			localError += (b1[i] - b2[i]) * kk[i];
+			localError += (b1[i] - b2[i]) * k[i];
 		}
-// Here must be localError=step*sum(...), but as totalTol is also multiplyed by step
-// then I can reduce it
-//		localError *= step;
-		if (abs(localError) < totalTol) {
+		localError *= step;
+		if (step < 1e-5) {
+			cout << "Stop" << endl;
+		}
+		if (abs(localError) / step < totalTol) {
 			xCurr += step;
-			solut = nextValue(xCurr, solut, step, b2, kk, true);
+			solut = nextValue(xCurr, solut, step, b2, k, true);
+			nodes.push_back(xCurr);
+			values.push_back(solut);
 		}
 		else {
 			step *= min(pow(totalTol * step /abs(localError), 1. / degree), deltaMax);
@@ -202,16 +205,52 @@ void solution(double& solut, double& accurSolut) {
 			step = X1 - xCurr;
 		}
 	}
-	accurSolut = solut + localError;
+	delete[]k;
 }
 
+void constRK(vector<double>& nodes, vector<double>& values, int N) {
+	double* k = new double[s];
+	nodes = vector<double>();
+	values = vector<double>();
+
+	double step = (X1 - X0) / N;
+	double xCurr = X0;
+	double yCurr = Y0;
+	nodes.push_back(xCurr);
+	values.push_back(yCurr);
+	for (int i = 1; i <= N; i++) {
+		yCurr = nextValue(xCurr, yCurr, step, b2, k);
+		xCurr += step;
+		nodes.push_back(xCurr);
+		values.push_back(yCurr);
+	}
+
+	delete[]k;
+}
+
+void outputResults(vector<double>& x, vector<double>& y, string filename) {
+	ofstream out(filename);
+
+	int N = x.size();
+	for (int i = 0; i < N; i++) {
+		out << setprecision(16) <<  x[i] << " " << setprecision(16) << y[i] << endl;
+	}
+
+	out.close();
+}
 
 int main() {
 	initAll();
 	downloadAll();
-	double solut, accurSolut;
-	solution(solut, accurSolut);
-	cout << endl << abs(expected - solut) << endl << abs(expected - accurSolut) << endl;
+
+	vector<double> nodes;
+	vector<double> values;
+
+	adaptiveRK(nodes, values);
+	outputResults(nodes, values, whereOutput + "AdaptiveRK.txt");
+	constRK(nodes, values, 400);
+	outputResults(nodes, values, whereOutput + "ConstRK.txt");
+	
 	clearAll();
 	system("pause");
 	return 0;
