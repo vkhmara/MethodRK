@@ -140,11 +140,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="MethodRK.cpp" />
-    <ClCompile Include="NestedMethodRK.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="SimpleRK.h" />
     <ClInclude Include="CommonMethods.h" />
     <ClInclude Include="Consts.h" />
+    <ClInclude Include="NestedMethodRK.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

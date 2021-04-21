@@ -3,6 +3,8 @@
 #include <vector>
 #include <iomanip>
 #include "CommonMethods.h"
+#include "NestedMethodRK.h"
+#include "SimpleRK.h"
 
 double** A;
 double* b1;
@@ -21,30 +23,30 @@ double getNumberFromString(string str) {
 		atof(str.substr(sleshIndex + 1).c_str());
 }
 
-void downloadArray(string filename, double* arr) {
+void downloadArray(string filename, double* arr, int dim) {
 	ifstream file(filename);
 	char ch[200];
 	int prevPos = -1;
 	file.getline(ch, 200);
 	string content = ch;
 	content += " ";
-	for (int i = 0; i < s; i++) {
+	for (int i = 0; i < dim; i++) {
 		arr[i] = getNumberFromString(content.substr(prevPos + 1, content.find(' ', prevPos + 1)));
 		prevPos = content.find(' ', prevPos + 1);
 	}
 	file.close();
 }
 
-void downloadMatrix(string filename, double** matrix) {
+void downloadMatrix(string filename, double** matrix, int dim) {
 	string content;
 	int prevPos = -1;
 
 	ifstream file(filename);
 	char ch[200];
-	for (int i = 0; i < s; i++) {
+	for (int i = 0; i < dim; i++) {
 		matrix[0][i] = 0;
 	}
-	for (int iter = 1; iter < s; iter++) {
+	for (int iter = 1; iter < dim; iter++) {
 		prevPos = -1;
 		file.getline(ch, 200);
 		content = ch;
@@ -53,32 +55,28 @@ void downloadMatrix(string filename, double** matrix) {
 			matrix[iter][i] = getNumberFromString(content.substr(prevPos + 1, content.find(' ', prevPos + 1)));
 			prevPos = content.find(' ', prevPos + 1);
 		}
-		for (int i = iter; i < s; i++) {
+		for (int i = iter; i < dim; i++) {
 			matrix[iter][i] = 0;
 		}
 	}
 	file.close();
 }
 
-void printAll() {
+void printAll(const methodRK& method) {
 	cout << "A\n";
-	for (int i = 0; i < s; i++) {
-		for (int j = 0; j < s; j++) {
-			cout << A[i][j] << " ";
+	for (int i = 0; i < method.s; i++) {
+		for (int j = 0; j < method.s; j++) {
+			cout << method.A[i][j] << " ";
 		}
 		cout << endl;
 	}
 	cout << "b1\n";
-	for (int i = 0; i < s; i++) {
-		cout << b1[i] << " ";
-	}
-	cout << "\nb2\n";
-	for (int i = 0; i < s; i++) {
-		cout << b2[i] << " ";
+	for (int i = 0; i < method.s; i++) {
+		cout << method.b[i] << " ";
 	}
 	cout << "\nc\n";
-	for (int i = 0; i < s; i++) {
-		cout << c[i] << " ";
+	for (int i = 0; i < method.s; i++) {
+		cout << method.c[i] << " ";
 	}
 }
 
@@ -107,10 +105,10 @@ void initAll() {
 }
 
 void downloadAll() {
-	downloadMatrix(AFile, A);
-	downloadArray(b1File, b1);
-	downloadArray(b2File, b2);
-	downloadArray(cFile, c);
+	downloadMatrix(AFile, A, s);
+	downloadArray(b1File, b1, s);
+	downloadArray(b2File, b2, s);
+	downloadArray(cFile, c, s);
 }
 
 void clearAll() {
@@ -122,75 +120,6 @@ void clearAll() {
 	delete[]b1;
 	delete[]b2;
 	delete[]c;
-}
-
-void adaptiveRK(vector<double>& nodes, vector<double>& values) {
-	double* k = new double[s];
-	nodes = vector<double>();
-	values = vector<double>();
-
-	nodes.push_back(X0);
-	double xCurr = X0;
-	values.push_back(Y0);
-	double solut = Y0;
-	double totalTol = EPS / abs(X1 - X0);
-	double step = (X1- X0) / 2;
-	double localError = 0;
-	bool lastStep = false;
-	while (abs(xCurr - X1) > DBL_EPSILON) {
-		kFromStep(xCurr, solut, step, k, method2, f);
-		localError = 0;
-		for (int i = 0; i < s; i++) {
-			localError += (b1[i] - b2[i]) * k[i];
-		}
-		localError *= step;
-		
-		if (lastStep || (totalTol * 0.5 < abs(localError) / step && abs(localError) / step < totalTol)) {
-			xCurr += step;
-			solut = nextValue(xCurr, solut, step, k, method2, f, true);
-			nodes.push_back(xCurr);
-			values.push_back(solut);
-		}
-		else {
-			
-			if (abs(localError) / step <= totalTol * 0.5) {
-				if (localError == 0.0) {
-					step *= deltaMin;
-				}
-				else {
-					step *= max(pow(totalTol * step / abs(localError) / 2, 1. / degree), deltaMin);
-				}
-			}
-			else {
-				step *= min(pow(totalTol * step / abs(localError), 1. / degree), deltaMax);
-			}
-		}
-		if (abs(step) > abs(X1 - xCurr)) {
-			step = X1 - xCurr;
-			lastStep = true;
-		}
-	}
-	delete[]k;
-}
-
-void constRK(vector<double>& nodes, vector<double>& values, int N) {
-	double* k = new double[s];
-	nodes = vector<double>();
-	values = vector<double>();
-
-	double step = (X1 - X0) / N;
-	double xCurr = X0;
-	double yCurr = Y0;
-	nodes.push_back(xCurr);
-	values.push_back(yCurr);
-	for (int i = 1; i <= N; i++) {
-		yCurr = nextValue(xCurr, yCurr, step, k, method2, f);
-		xCurr += step;
-		nodes.push_back(xCurr);
-		values.push_back(yCurr);
-	}
-
-	delete[]k;
 }
 
 void outputResults(vector<double>& x, vector<double>& y, string filename) {
@@ -211,10 +140,12 @@ int main() {
 	vector<double> nodes;
 	vector<double> values;
 
-	adaptiveRK(nodes, values);
+	adaptiveNestedRK(nodes, values, method1, method2);
 	outputResults(nodes, values, whereOutput + "AdaptiveRK.txt");
-//	constRK(nodes, values, 314);
+//	constRK(nodes, values, 314, method2);
 //	outputResults(nodes, values, whereOutput + "ConstRK.txt");
+	adaptiveSimpleRK(nodes, values, method2);
+	outputResults(nodes, values, whereOutput + "AdaptiveSimpleRK.txt");
 	
 	clearAll();
 	system("pause");

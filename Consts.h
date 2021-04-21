@@ -14,9 +14,9 @@ const double deltaMin = 1.2;
 
 const double X0 = 0.0;
 const double Y0 = 0.0;
-const double X1 = 5;
+const double X1 = 50;
 //const double expected = pow(E, 3.0) / 2 - 3.0;
-const double EPS = 1e-10;
+const double EPS = 1e-13;
 const int degree = 4;
 const double a = 2;
 
