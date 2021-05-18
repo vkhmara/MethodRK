@@ -142,10 +142,11 @@ int main() {
 
 	adaptiveNestedRK(nodes, values, method1, method2);
 	outputResults(nodes, values, whereOutput + "AdaptiveRK.txt");
-//	constRK(nodes, values, 314, method2);
+//	constRK(nodes, values, 1000, method1);
 //	outputResults(nodes, values, whereOutput + "ConstRK.txt");
-	adaptiveSimpleRK(nodes, values, method2);
-	outputResults(nodes, values, whereOutput + "AdaptiveSimpleRK.txt");
+//	adaptiveSimpleRK(nodes, values, method1);
+//	outputResults(nodes, values, whereOutput + "AdaptiveSimpleRK.txt");
+
 	
 	clearAll();
 	system("pause");
